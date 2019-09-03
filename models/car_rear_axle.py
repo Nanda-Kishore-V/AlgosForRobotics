@@ -7,7 +7,7 @@ class Car:
     States: x, y, yaw, v
     Inputs: a, delta
     """
-    def __init__(self, x=0, y=0, yaw=0, v=0, delta=0, a=0):
+    def __init__(self, x=0, y=0, yaw=0, v=0, delta=0, a=0, L=3, a_max=2, delta_max=1.22):
         self.x = x
         self.y = y
         self.yaw = yaw
@@ -15,9 +15,9 @@ class Car:
         self.delta = delta
         self.a = a
 
-        self.L = 3 # m
-        self.a_max = 1 # m/s^2
-        self.delta_max = 1.22 # rad
+        self.L = L # m
+        self.a_max = a_max # m/s^2
+        self.delta_max = delta_max # rad
 
     def _update_controls(self, a, delta):
         self.a = np.fmin(np.fmax(a, -self.a_max), self.a_max)

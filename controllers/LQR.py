@@ -4,11 +4,10 @@ from numpy import linalg
 
 class LQR:
     """
-    Stanley controller for lateral control
-    Assumes rear axle model of the car
+    LQR controller for lateral control
     """
     def __init__(self, x=0, y=0, yaw=0, v=0, delta=0,
-                 max_steering_angle=1.22, L=3, Q=10*np.eye(4), R=1, K=1):
+                 max_steering_angle=1.22, L=3, Q=np.eye(4), R=1, K=1):
         # States
         self.x = x
         self.y = y
@@ -43,8 +42,12 @@ class LQR:
     @staticmethod
     def solve_discrete_riccati(A, B, Q, R):
         P = Q
-        for _ in range(150):
-            P = A.T @ P @ A - (A.T @ P @ B) @ linalg.inv(R + B.T @ P @ B) @ (B.T @ P @ A) + Q
+        for _ in range(1000):
+            Pn = A.T @ P @ A - (A.T @ P @ B) @ linalg.inv(R + B.T @ P @ B) @ (B.T @ P @ A) + Q
+            if linalg.norm(Pn - P, ord='fro') < 0.01:
+                P = Pn
+                break
+            P = Pn
 
         return P
 
@@ -55,12 +58,8 @@ class LQR:
 
     @staticmethod
     def bound_angles(theta):
-        if theta > np.pi:
-            theta = theta - 2*np.pi
-        elif theta < -np.pi:
-            theta = theta + 2*np.pi
+        return (theta + np.pi) % (2*np.pi) - np.pi
 
-        return theta
 
     def create_A_and_B(self, dt=0.01):
         A = np.zeros((4, 4))
@@ -116,9 +115,28 @@ class LQR:
         self.prev_y_e = y_e
         self.prev_yaw_e = yaw_e
 
-        steer_fb = (- K @ error_vec)[0, 0]
+        steer_fb = self.bound_angles((- K @ error_vec)[0, 0])
         steer_ff = np.arctan2(self.L * curvature, 1)
 
         steer = steer_fb + steer_ff
 
         return steer
+
+if __name__=="__main__":
+    A = np.array([[1, 0.01, 0, 0],
+                  [0, 0, 3, 0],
+                  [0, 0, 1, 0.01],
+                  [0, 0, 0, 0]])
+    B = np.array([[0],
+                  [0],
+                  [0],
+                  [1]])
+    Q = np.eye(4)
+    R = np.eye(1)
+    P = LQR.solve_discrete_riccati(A, B, Q, R)
+    print("P:")
+    print(P)
+
+    K = LQR.get_controller_gain(A, B, Q, R, P)
+    print("K:")
+    print(K)

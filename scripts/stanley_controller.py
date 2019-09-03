@@ -12,6 +12,7 @@ from controllers.LongitudinalPID import LongitudinalPID
 from trajectory_generation.CubicSpline import Spline2D
 
 WAYPOINT_RADIUS = 5.0
+GOAL_EPS = 0.5
 
 def distance(a, b):
     return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
@@ -29,16 +30,16 @@ def find_closest_waypoints(car, cx, cy, cyaw):
     return last_idx, wps
 
 def main():
-    car = Car(x=0, y=0, yaw=0)
+    car = Car(x=0, y=1, yaw=0)
     lateral_controller = StanleyController(x=car.x, y=car.y, yaw=car.yaw,
                                               v=car.v, delta=car.delta, K=2)
     longitudinal_controller = LongitudinalPID(v=car.v)
 
     # Target track
-    # cx = np.arange(0, 50, 0.1)
-    # cy = [np.sin(ix / 5.0) * ix / 2.0 for ix in cx]
     ax = [0.0, 100.0, 100.0, 50.0, 60.0]
     ay = [0.0, 0.0, -30.0, -20.0, 0.0]
+    goal_x = ax[-1]
+    goal_y = ay[-1]
 
     spline = Spline2D(ax, ay)
     s = np.linspace(0, 1, num=500)
@@ -69,12 +70,15 @@ def main():
         plt.plot(cx, cy, 'r')
         plt.arrow(car.x, car.y, 0.5 * np.cos(car.yaw), 0.5 * np.sin(car.yaw),
                  fc='b', ec='k', head_width=1, head_length=1)
-        # plt.plot(car.x, car.y, 'xb')
         plt.plot(x_hist, y_hist, '-b')
         plt.title('Stanley Control for steering')
         plt.xlabel('x (in m)')
         plt.ylabel('y (in m)')
         plt.pause(dt)
+
+        if distance((car.x, car.y), (goal_x, goal_y)) < GOAL_EPS:
+            print("Reached goal!")
+            break
 
     plt.show()
 

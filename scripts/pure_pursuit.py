@@ -12,6 +12,10 @@ from controllers.LongitudinalPID import LongitudinalPID
 
 LOOKAHEAD_FACTOR = 0.2 # s
 CONST_LOOKAHEAD_DIST = 3 # m
+GOAL_EPS = 0.1 # m
+
+def distance(a, b):
+    return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
 
 def lookahead(car, cx, cy):
     distances = np.sum(( np.array([[car.x], [car.y]]) - np.stack((cx, cy)) )**2,
@@ -39,6 +43,8 @@ def main():
     # Target track
     cx = np.arange(0, 50, 0.1)
     cy = [np.sin(ix / 5.0) * ix / 2.0 for ix in cx]
+    goal_x = cx[-1]
+    goal_y = cy[-1]
 
     target_speed = 30.0/3.6
 
@@ -48,8 +54,6 @@ def main():
     dt = 0.01
     while True:
         idx, target_x, target_y = lookahead(car, cx, cy)
-        if idx is None:
-            break
         target_waypoint = [target_x, target_y]
         throttle = longitudinal_controller.get_throttle_input(car.v, dt,
                                                                target_speed)
@@ -74,6 +78,11 @@ def main():
         plt.xlabel('x (in m)')
         plt.ylabel('y (in m)')
         plt.pause(dt)
+
+        if distance((car.x, car.y), (goal_x, goal_y)) < GOAL_EPS:
+            print("Reached goal!")
+            break
+    plt.show()
 
 if __name__=="__main__":
     main()

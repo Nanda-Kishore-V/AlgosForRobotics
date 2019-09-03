@@ -14,8 +14,8 @@ class Spline2D:
         self.setup()
 
     def setup(self):
-        self.x_spline = CubicSpline(self.s, self.x)
-        self.y_spline = CubicSpline(self.s, self.y)
+        self.x_spline = CubicSpline(self.s, self.x, bc_type='natural')
+        self.y_spline = CubicSpline(self.s, self.y, bc_type='natural')
 
     def get_yaw(self, s):
         dx_i = self.x_spline(s, 1)
@@ -29,7 +29,7 @@ class Spline2D:
         ddx_i = self.x_spline(s, 2)
         ddy_i = self.y_spline(s, 2)
 
-        return abs(dx_i * ddy_i - dy_i * ddx_i)/(dx_i**2 + dy_i**2)**1.5
+        return (dx_i * ddy_i - dy_i * ddx_i)/(dx_i**2 + dy_i**2)**1.5
 
     def get_discrete_points(self, s):
         xs = self.x_spline(s)
