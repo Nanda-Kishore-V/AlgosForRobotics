@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Based on the paper "A Tutorial On Autonomous Vehicle Steering
 Controller Design, Simulation and Implementation"
@@ -18,8 +18,84 @@ from trajectory_generation.CubicSpline import Spline2D
 
 GOAL_EPS = 0.1
 
+# Vehicle Parameters
+WIDTH = 0.125  # m
+WHEEL_LEN = 0.1  # m
+WHEEL_WIDTH = 0.025  # m
+TREAD = 0.1  # m
+L = 0.5  # m
+
 def distance(a, b):
     return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
+
+def plot_car(x, y, yaw, delta=0.0, cabcolor="-r", truckcolor="-k"):
+    x_f = x + np.cos(yaw) * L
+    y_f = y + np.sin(yaw) * L
+
+    plt.plot([x, x_f], [y, y_f], 'k')
+
+    rear_axle_x1 = x + WIDTH * np.cos(yaw - 1.57) / 2
+    rear_axle_y1 = y + WIDTH * np.sin(yaw - 1.57) / 2
+    rear_axle_x2 = x + WIDTH * np.cos(yaw + 1.57) / 2
+    rear_axle_y2 = y + WIDTH * np.sin(yaw + 1.57) / 2
+
+    plt.plot([rear_axle_x1, rear_axle_x2], [rear_axle_y1, rear_axle_y2], 'k')
+
+    front_axle_x1 = x_f + WIDTH * np.cos(yaw - 1.57) / 2
+    front_axle_y1 = y_f + WIDTH * np.sin(yaw - 1.57) / 2
+    front_axle_x2 = x_f + WIDTH * np.cos(yaw + 1.57) / 2
+    front_axle_y2 = y_f + WIDTH * np.sin(yaw + 1.57) / 2
+
+    plt.plot([front_axle_x1, front_axle_x2], [front_axle_y1, front_axle_y2], 'k')
+
+    right_rear_wheel = np.array([[WHEEL_LEN, -WHEEL_LEN, -WHEEL_LEN, WHEEL_LEN,
+                                  WHEEL_LEN],
+                                 [-WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD,
+                                  WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD,
+                                  -WHEEL_WIDTH - TREAD]])
+    right_front_wheel = np.copy(right_rear_wheel)
+
+    left_rear_wheel = np.copy(right_rear_wheel)
+    left_rear_wheel[1, :] *= -1
+
+    left_front_wheel = np.copy(right_front_wheel)
+    left_front_wheel[1, :] *= -1
+
+
+    R_yaw = np.array([[np.cos(yaw), np.sin(yaw)],
+                     [-np.sin(yaw), np.cos(yaw)]])
+    R_delta = np.array([[np.cos(delta), np.sin(delta)],
+                     [-np.sin(delta), np.cos(delta)]])
+
+    right_rear_wheel = R_yaw.T @ right_rear_wheel
+    left_rear_wheel = R_yaw.T @ left_rear_wheel
+
+    right_front_wheel = R_delta.T @ right_front_wheel
+    left_front_wheel = R_delta.T @ left_front_wheel
+    right_front_wheel[0, :] += L
+    left_front_wheel[0, :] += L
+    right_front_wheel = R_yaw.T @ right_front_wheel
+    left_front_wheel = R_yaw.T @ left_front_wheel
+
+    right_rear_wheel[0, :] += x
+    right_rear_wheel[1, :] += y
+    left_rear_wheel[0, :] += x
+    left_rear_wheel[1, :] += y
+    right_front_wheel[0, :] += x
+    right_front_wheel[1, :] += y
+    left_front_wheel[0, :] += x
+    left_front_wheel[1, :] += y
+
+    plt.plot(np.array(right_rear_wheel[0, :]).flatten(),
+             np.array(right_rear_wheel[1, :]).flatten(), truckcolor)
+    plt.plot(np.array(left_rear_wheel[0, :]).flatten(),
+             np.array(left_rear_wheel[1, :]).flatten(), truckcolor)
+    plt.plot(np.array(right_front_wheel[0, :]).flatten(),
+             np.array(right_front_wheel[1, :]).flatten(), truckcolor)
+    plt.plot(np.array(left_front_wheel[0, :]).flatten(),
+             np.array(left_front_wheel[1, :]).flatten(), truckcolor)
+
+    plt.plot(x, y, '*g')
 
 def main():
     Q = np.eye(4)
@@ -59,8 +135,7 @@ def main():
 
         plt.cla()
         plt.plot(cx, cy, 'r')
-        plt.arrow(car.x, car.y, 0.1 * np.cos(car.yaw), 0.1 * np.sin(car.yaw),
-                 fc='b', ec='k', head_width=0.1, head_length=0.1)
+        plot_car(car.x, car.y, car.yaw, car.delta)
         plt.plot(x_hist, y_hist, '-b')
         plt.title('LQR controller for steering')
         plt.xlabel('x (in m)')

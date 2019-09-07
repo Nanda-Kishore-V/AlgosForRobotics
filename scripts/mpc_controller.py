@@ -51,8 +51,11 @@ def plot_car(x, y, yaw, delta=0.0, cabcolor="-r", truckcolor="-k"):
 
     plt.plot([front_axle_x1, front_axle_x2], [front_axle_y1, front_axle_y2], 'k')
 
-    right_rear_wheel = np.array([[WHEEL_LEN, -WHEEL_LEN, -WHEEL_LEN, WHEEL_LEN, WHEEL_LEN],
-                         [-WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD]])
+    right_rear_wheel = np.array([[WHEEL_LEN, -WHEEL_LEN, -WHEEL_LEN, WHEEL_LEN,
+                                  WHEEL_LEN],
+                                 [-WHEEL_WIDTH - TREAD, -WHEEL_WIDTH - TREAD,
+                                  WHEEL_WIDTH - TREAD, WHEEL_WIDTH - TREAD,
+                                  -WHEEL_WIDTH - TREAD]])
     right_front_wheel = np.copy(right_rear_wheel)
 
     left_rear_wheel = np.copy(right_rear_wheel)
@@ -95,7 +98,7 @@ def plot_car(x, y, yaw, delta=0.0, cabcolor="-r", truckcolor="-k"):
     plt.plot(np.array(left_front_wheel[0, :]).flatten(),
              np.array(left_front_wheel[1, :]).flatten(), truckcolor)
 
-    plt.plot(x, y, '*m')
+    plt.plot(x, y, '*g')
 
 def smooth_yaw(yaw):
     for i in range(len(yaw) - 1):
@@ -123,7 +126,6 @@ def generate_speed_profile(car, cx, cy, cyaw, target_speed):
 
         if dx != 0 and dy != 0:
             d_yaw = abs(MPC.bound_angles(forward_direction - cyaw[i]))
-            print(d_yaw)
             if d_yaw >= car.delta_max:
                 direction = -1.0
             else:
@@ -179,7 +181,7 @@ def main():
 
         plt.cla()
         plt.plot(cx, cy, 'r')
-        plot_car(car.x, car.y, car.yaw, steer)
+        plot_car(car.x, car.y, car.yaw, car.delta)
         plt.plot(x_hist, y_hist, '-b')
         plt.title('MPC controller for speed and steering')
         plt.xlabel('x (in m)')

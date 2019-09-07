@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import numpy as np
 from numpy import linalg
 
@@ -155,6 +155,9 @@ class MPC:
             prev_deltas = deltas
             xs, ys, vs, yaws, accelerations, deltas = \
                 self.linear_mpc(x_ref, x_operating, x0, dt)
+            if xs is None:
+                print("MPC failed!")
+                exit()
             if sum(abs(accelerations - prev_accelerations)) <= DA and \
                     sum(abs(deltas - prev_deltas)) <= DDELTA:
                 break

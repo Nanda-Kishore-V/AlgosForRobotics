@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import numpy as np
 
 class Car:
@@ -7,7 +7,7 @@ class Car:
     States: x, y, yaw, v
     Inputs: a, delta
     """
-    def __init__(self, x=0, y=0, yaw=0, v=0, delta=0, a=0, L=3, a_max=2, delta_max=1.22):
+    def __init__(self, x=0, y=0, yaw=0, v=0, delta=0, a=0, L=3, a_max=2, delta_max=np.pi/4):
         self.x = x
         self.y = y
         self.yaw = yaw
