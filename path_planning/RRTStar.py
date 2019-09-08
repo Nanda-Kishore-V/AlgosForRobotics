@@ -1,6 +1,7 @@
 #!usr/bin/env python3
 import numpy as np
 import random
+from matplotlib import pyplot as plt
 
 class Node:
     def __init__(self, location, cost=0, children=[], parent=None):
@@ -18,7 +19,7 @@ class Node:
     def update_cost(self, cost):
         self.cost = cost
 
-class RRT:
+class RRTStar:
     def __init__(self, start, goal, limits, obstacles, threshold=0.1):
         self.start = start
         self.goal = goal
@@ -76,42 +77,84 @@ class RRT:
         diff = np.array(a) - np.array(b)
         return np.sqrt(np.dot(diff, diff))
 
+    def find_nearest(self, x):
+        min_distance = np.inf
+        min_node = None
+        for n in self.node_list:
+            dist = self.distance(n.location, x)
+            if  dist < min_distance:
+                min_distance = dist
+                min_node = n
+        return min_node, min_distance
+
+    def find_k_closest(self, x, k):
+        distances = np.array([])
+        for i in range(len(self.node_list)):
+            distances = np.append(distances, self.distance(self.node_list[i].location, x))
+        indices = distances.argsort()
+        distances = distances[indices]
+        sorted_node_list = [self.node_list[i] for i in indices[:k]]
+        return sorted_node_list, distances[:k]
+
     def generate_path(self):
         iterations = 0
         found = False
         while iterations < self.maximum_iterations and not found:
             if random.random() < 0.1:
-                point = self.goal
+                x = self.goal
             else:
                 while True:
-                    point = self.generate_random_point()
-                    if not self.check_collision(point):
+                    x = self.generate_random_point()
+                    if not self.check_collision(x):
                         break
 
-            min_dist = np.inf
-            min_node = None
-            for n in self.node_list:
-                d = self.distance(point, n.location)
-                if d < min_dist and not self.check_path_collision(point, n.location):
-                    min_dist = d
-                    min_node = n
+            x_nearest, d = self.find_nearest(x)
+            x_new = self.steer(x_nearest.location, x)
+            if self.check_collision(x_new):
+                continue
+            if not self.check_path_collision(x_nearest.location, x_new):
+                new_node = Node(x_new, parent=x_nearest, cost=np.inf)
+                x_min = x_nearest
 
-            if min_node is not None:
-                point = self.steer(min_node.location, point)
-                new_node = Node(point, parent=min_node, cost=min_node.cost + min_dist)
-                min_node.add_child(new_node)
+                k = min(100, len(self.node_list))
+                X_near, distances = self.find_k_closest(x_new, k)
+                for x_near, d in zip(X_near, distances):
+                    if not self.check_path_collision(x_near.location, x_new):
+                        new_cost = x_near.cost + d
+                        if new_cost < new_node.cost:
+                            new_node.update_cost(new_cost)
+                            x_min = x_near
+                new_node.set_parent(x_min)
                 self.node_list.append(new_node)
 
-                goal_dist = self.distance(point, self.goal)
+                for x_near in X_near:
+                    if x_near == x_min:
+                        continue
+                    d = self.distance(new_node.location, x_near.location)
+                    if not self.check_path_collision(x_new, x_near.location) and \
+                            x_near.cost > new_node.cost + d:
+                        x_near.set_parent(new_node)
+                        x_near.update_cost(new_node.cost + d)
+
+                # plt.cla()
+                # plt.plot(self.start[0], self.start[1], 'xr')
+                # for n in self.node_list:
+                #     c = n.location
+                #     if n.parent is not None:
+                #         p = n.parent.location
+                #         plt.plot([c[0], p[0]], [c[1], p[1]], 'k')
+                #         plt.plot(c[0], c[1], 'xc')
+                # plt.pause(1)
+
+                goal_dist = self.distance(x_new, self.goal)
                 if goal_dist < self.goal_eps:
-                    if self.check_path_collision(self.goal, point):
+                    if self.check_path_collision(self.goal, x_new):
                         continue
                     else:
                         goal_node = Node(self.goal, parent=new_node, cost=new_node.cost + goal_dist)
                         self.node_list.append(goal_node)
                         self.last_node = goal_node
                         found = True
-
                 iterations += 1
 
         return found
@@ -129,39 +172,11 @@ class RRT:
             current_node = current_node.parent
         return path[::-1]
 
-    def retrieve_path_with_quick_smoothing(self, iterations=100):
-        path = self.retrieve_path()
-        if path is None:
-            return path
-        for i in range(iterations):
-            p1 = random.choice(range(len(path)))
-            p2 = random.choice(range(len(path)))
-            if p1 == p2:
-                continue
-            if p1 > p2:
-                temp = p2
-                p2 = p1
-                p1 = temp
-            if not self.check_path_collision(path[p1], path[p2]):
-                del path[p1+1:p2]
-        return path
-
-    def retrieve_path_with_smoothing(self):
-        path = self.retrieve_path()
-        if path is None:
-            return path
-        forward_iter = 0
-        reverse_iter = len(path)-1
-        while True:
-            if forward_iter == len(path) - 1:
-                break
-            if forward_iter >= reverse_iter:
-                forward_iter += 1
-                reverse_iter = len(path) - 1
-            if not self.check_path_collision(path[forward_iter], path[reverse_iter]):
-                del path[forward_iter+1:reverse_iter]
-                forward_iter = forward_iter + 1
-                reverse_iter = len(path) - 1
-            else:
-                reverse_iter -= 1
-        return path
+if __name__=="__main__":
+    start = (1, 1)
+    goal = (2, 2)
+    limits = [(0, 3), (0, 3)]
+    obstacles = [(1.5, 1.5, 0.3)]
+    path_planner = RRTStar(start, goal, limits, [])
+    path_planner.generate_path()
+    print(path_planner.retrieve_path())

@@ -4,9 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 sys.path.append("../")
-from path_planning.RRT import RRT
-
-SMOOTHING = True
+from path_planning.RRTStar import RRTStar
 
 def main():
     start = (1, 1)
@@ -21,18 +19,12 @@ def main():
                  (1.5, 2.2, 0.2),
                  (1.5, 2.5, 0.2),
                  (1.5, 2.8, 0.2)]
-    path_planner = RRT(start, goal, limits, obstacles)
+    path_planner = RRTStar(start, goal, limits, obstacles)
     path_planner.generate_path()
-    if SMOOTHING:
-        path = path_planner.retrieve_path_with_quick_smoothing()
-    else:
-        path = path_planner.retrieve_path()
+    path = path_planner.retrieve_path()
 
     plt.figure()
-    if SMOOTHING:
-        plt.title("RRT path planning with smoothing")
-    else:
-        plt.title("RRT path planning")
+    plt.title("RRT* path planning")
     plt.xlabel("x")
     plt.ylabel("y")
     plt.plot(path_planner.root.location[0], path_planner.root.location[1], 'xr')
