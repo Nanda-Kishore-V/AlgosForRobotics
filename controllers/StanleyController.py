@@ -46,14 +46,17 @@ class StanleyController:
 
         cx = waypoints[0]
         cy = waypoints[1]
-        cyaw = waypoints[2]
+        # cyaw = waypoints[2]
 
         distances = np.sum(( np.array([[x_f], [y_f]]) - np.stack((cx, cy)) )**2, axis=0)
         idx = np.argmin(distances)
         cte = distances[idx]
 
-        # desired_heading = np.arctan2(cy[idx+1] - cy[idx], cx[idx+1] - cx[idx])
-        desired_heading = cyaw[idx]
+        if idx != len(waypoints[0]):
+            desired_heading = np.arctan2(cy[idx+1] - cy[idx], cx[idx+1] - cx[idx])
+        else:
+            desired_heading = np.arctan2(cy[idx] - cy[idx-1], cx[idx] - cx[idx-1])
+        # desired_heading = cyaw[idx]
         heading_error = desired_heading - self.yaw
         heading_error = np.arctan2(np.sin(heading_error), np.cos(heading_error))
 

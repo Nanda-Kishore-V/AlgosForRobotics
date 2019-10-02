@@ -150,7 +150,6 @@ class MPC:
     def iterative_mpc(self, x0, x_ref, accelerations, deltas, dt=0.01):
         for i in range(ITERATIONS):
             x_operating = self.predict(x0, accelerations, deltas, dt)
-            from matplotlib import pyplot as plt
             prev_accelerations = accelerations
             prev_deltas = deltas
             xs, ys, vs, yaws, accelerations, deltas = \
@@ -185,6 +184,11 @@ class MPC:
             idx = prev_idx
             target_x = cx[idx]
             target_y = cy[idx]
+
+        x_ref[0, 0] = cx[idx]
+        x_ref[1, 0] = cy[idx]
+        x_ref[2, 0] = vel[idx]
+        x_ref[3, 0] = cyaw[idx]
 
         idxs = [idx]
         path_length = 0
