@@ -4,9 +4,8 @@ from numpy import linalg
 
 import cvxpy
 
-ITERATIONS = 3
-DA = 0.1
-DDELTA = 0.01
+from matplotlib import pyplot as plt
+
 class MPC:
     def __init__(self, x=0, y=0, yaw=0, v=0, delta=0,
                  max_steering_angle=1.22, L=3, Q=np.eye(4), Qf=np.eye(4),
@@ -42,6 +41,7 @@ class MPC:
         self.steer_rate_max = steer_rate_max
 
         self.prev_idx = 0
+        self.send_prev = 0
         self.prev_accelerations = np.array([0.0] * self.len_horizon)
         self.prev_deltas = np.array([0.0] * self.len_horizon)
 
@@ -90,7 +90,7 @@ class MPC:
 
         return A, B, C
 
-    def linear_mpc(self, z_ref, z_operating, z_initial, dt):
+    def linear_mpc(self, z_ref, z_initial, prev_deltas, dt):
         z = cvxpy.Variable((4, self.len_horizon + 1))
         u = cvxpy.Variable((2, self.len_horizon))
 
@@ -101,13 +101,16 @@ class MPC:
             if i != 0:
                 cost += cvxpy.quad_form(z_ref[:, i] - z[:, i], self.Q)
                 cost += cvxpy.quad_form(u[:, i] - u[:, i-1], self.Rd)
+            else:
+                u_prev = [self.prev_accelerations[0], self.prev_deltas[0]]
+                cost += cvxpy.quad_form(u[:, i] - u_prev, self.Rd)
 
             cost += cvxpy.quad_form(u[:, i], self.R)
 
             ## Constraints
             # Dynamics
-            A, B, C = self.get_linearized_dynamics(z_operating[3, i], 0,
-                                                   z_operating[2, i], dt)
+            A, B, C = self.get_linearized_dynamics(z_ref[3, i], 0,
+                                                   z_ref[2, i], dt)
             constraints += [z[:, i+1] == A @ z[:, i] + B @ u[:, i] + C.flatten()]
 
             # Velocity limits
@@ -122,8 +125,8 @@ class MPC:
 
             # Rate of change of input limit
             if i != 0:
-                # constraints += [u[0, i] - u[0, i-1] <= self.a_rate_max]
-                # constraints += [u[0, i] - u[0, i-1] >= -self.a_rate_max]
+                constraints += [u[0, i] - u[0, i-1] <= self.a_rate_max]
+                constraints += [u[0, i] - u[0, i-1] >= -self.a_rate_max]
                 constraints += [u[1, i] - u[1, i-1] <= self.steer_rate_max]
                 constraints += [u[1, i] - u[1, i-1] >= -self.steer_rate_max]
 
@@ -146,36 +149,6 @@ class MPC:
             x, y, v, yaw, a, delta = None, None, None, None, None, None
 
         return x, y, v, yaw, a, delta
-
-    def iterative_mpc(self, x0, x_ref, accelerations, deltas, dt=0.01):
-        for i in range(ITERATIONS):
-            x_operating = self.predict(x0, accelerations, deltas, dt)
-            prev_accelerations = accelerations
-            prev_deltas = deltas
-            xs, ys, vs, yaws, accelerations, deltas = \
-                self.linear_mpc(x_ref, x_operating, x0, dt)
-            if xs is None:
-                print("MPC failed!")
-                exit()
-            if sum(abs(accelerations - prev_accelerations)) <= DA and \
-                    sum(abs(deltas - prev_deltas)) <= DDELTA:
-                break
-
-        return accelerations, deltas, xs, ys, vs, yaws
-
-    def predict(self, x0, accelerations, deltas, dt=0.01):
-        x = np.zeros((4, self.len_horizon+1))
-        x[:, 0] = x0.flatten()
-        i = 1
-        for a, d in zip(accelerations, deltas):
-            x[0, i] = x[0, i-1] + x[2, i-1] * np.cos(x[3, i-1]) * dt
-            x[1, i] = x[1, i-1] + x[2, i-1] * np.sin(x[3, i-1]) * dt
-            x[2, i] = x[2, i-1] + accelerations[i-1] * dt
-            x[3, i] = x[3, i-1] + (x[2, i-1] * np.tan(deltas[i-1]) * dt) / self.L
-            i += 1
-
-        return x
-
 
     def get_ref_traj(self, cx, cy, cyaw, ck, vel, prev_idx, dt=0.01):
         x_ref = np.zeros((4, self.len_horizon+1))
@@ -227,10 +200,15 @@ class MPC:
         x0 = np.array([[self.x], [self.y], [self.v], [self.yaw]])
         idx, x_ref = self.get_ref_traj(cx, cy, cyaw, ck, speed_profile,
                                   self.prev_idx, dt=dt)
+        plt.figure(0)
+        plt.plot(x_ref[0, :], x_ref[1, :], 'xr')
+
         self.prev_idx = idx[0]
-        # Iterative MPC
-        self.prev_accelerations, self.prev_deltas, xs, ys, vs, yaws = \
-            self.iterative_mpc(x0, x_ref, self.prev_accelerations,
-                               self.prev_deltas, dt=dt)
+        xs, ys, vs, yaws, self.prev_accelerations, self.prev_deltas = \
+            self.linear_mpc(x_ref, x0, self.prev_deltas, dt=dt)
+
+        plt.plot(xs, ys, '.b')
+        plt.ylim([70, 150])
+        plt.pause(0.01)
 
         return self.prev_accelerations[0], self.prev_deltas[0], xs, ys, vs, yaws
