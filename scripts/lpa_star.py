@@ -7,9 +7,6 @@ from matplotlib import pyplot as plt
 sys.path.append('../')
 from path_planning.LPAStar import LPAStar
 
-from tempfile import mkstemp, mkdtemp
-from imageio import imread, mimsave
-
 def main():
     grid = np.zeros((80, 100))
     start = (2, 17)
@@ -57,14 +54,6 @@ def main():
     plt.axis('equal')
     plt.title("Dynamic Replanning using Lifelong Planning A*")
 
-    tempdir = mkdtemp()
-    image_name = []
-
-    _, filename = mkstemp(dir=tempdir)
-    filename += '.png'
-    fig.savefig(filename)
-    image_name.append(filename)
-
     plt.pause(1)
 
     for idx, obstacle in enumerate(obstacle_groups):
@@ -93,20 +82,11 @@ def main():
         plt.plot(goal[0], goal[1], '.g')
 
         plt.axis('equal')
-        fig.savefig(filename)
-
-        _, filename = mkstemp(dir=tempdir)
-        filename += '.png'
-        fig.savefig(filename)
-        image_name.append(filename)
+        plt.title("Dynamic Replanning using Lifelong Planning A*")
 
         plt.pause(1)
 
-    images = []
-    for png in image_name:
-        img = imread(png)
-        images.append(img)
-    mimsave('LPA_star.gif', images, duration=1)
+    plt.show()
 
 def main2():
     grid = np.zeros((5, 5))

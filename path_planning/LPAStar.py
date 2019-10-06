@@ -4,7 +4,6 @@ import itertools
 import operator
 import heapq
 
-# TODO: When priority queue is empty return with path not found
 class LPAStar:
     def __init__(self, grid, start, goal):
         self.grid = grid
@@ -103,8 +102,7 @@ class LPAStar:
         self.grid = grid
         I, J = np.nonzero(diff_grid)
         for i, j in zip(I, J):
-            self.g[(i, j)] = np.inf
-            self.rhs[(i, j)] = np.inf
+            self.update_vertex((i,j))
 
             for direction in self.directions:
                 neighbor = tuple(map(operator.add, (i, j), direction))

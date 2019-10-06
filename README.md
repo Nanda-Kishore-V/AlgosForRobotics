@@ -11,10 +11,16 @@ This repository is my implementation of common algorithms used for autonomous na
 - [Amit's A* pages](http://theory.stanford.edu/~amitp/GameProgramming/)
 
 ## Lifelong Planning A*
-<img src="figs/LPA_star.gif">
+<img src="figs/lpa_star.gif">
 
 <b>References:</b>
 - [Lifelong Planning A*](https://www.cs.cmu.edu/~maxim/files/aij04.pdf)
+
+## D* Lite
+<img src="figs/d_star_lite.gif">
+
+<b>References:</b>
+- [D* Lite](http://idm-lab.org/bib/abstracts/papers/aaai02b.pdf)
 
 ## RRT
 <img src="figs/rrt.gif">
